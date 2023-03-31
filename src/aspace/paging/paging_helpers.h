@@ -23,7 +23,7 @@
 
 #ifndef __PAGING_HELPERS_H__
 #define __PAGING_HELPERS_H__
-
+#include <nautilus/nautilus.h>
 
 /*
   All abstractions provide here are for long mode paging

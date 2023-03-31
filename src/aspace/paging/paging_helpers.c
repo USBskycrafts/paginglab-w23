@@ -21,7 +21,6 @@
  * redistribute, and modify it as specified in the file "LICENSE.txt".
  */
 
-#include <nautilus/nautilus.h>
 #include "paging_helpers.h"
 
 #ifndef NAUT_CONFIG_DEBUG_ASPACE_PAGING
