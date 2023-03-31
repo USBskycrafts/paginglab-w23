@@ -15,4 +15,4 @@ rm -f src/asm/ramdisk.o
 make isoimage -j 8
 
 # Run the kernel in QEMU with some default arguments and devices.
-qemu-system-x86_64 -cdrom nautilus.iso -m 2G -smp 1 -serial mon:stdio -vga std $@
+qemu-system-x86_64 -S -s -cdrom nautilus.iso -m 2G -smp 1 -serial mon:stdio -vga std $@

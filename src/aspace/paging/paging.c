@@ -205,7 +205,7 @@ static int add_region(void *state, nk_aspace_region_t *region)
     // an existing region, and then place it into your region data structure
     region_node_t* node = (region_node_t*)malloc(sizeof(region_node_t));
     node->region = *region;
-    list_add(&(node->items), &(head.items));
+    list_add(&node->items, &head.items);
     // NOTE: you MUST create a new nk_aspace_region_t to store in your data structure
     // and you MAY NOT store the region pointer in your data structure. There is no
     // promise that data at the region pointer will not be modified after this function
@@ -217,9 +217,10 @@ static int add_region(void *state, nk_aspace_region_t *region)
         // page table entries right now, before we return
         // DRILL THE PAGE TABLES HERE
         ph_pf_access_t access;
+        access.val = 0;
         access.present = 1;
-        for(addr_t offset = 0; offset < region->len_bytes; offset = PAGE_ADDR_4KB(offset)) {
-            paging_helper_drill(p->cr3, (addr_t)region->va_start + offset, (addr_t)region->va_start + offset, access);
+        for(addr_t offset = 0; offset < region->len_bytes; ++offset) {
+            paging_helper_drill(p->cr3, (addr_t)region->va_start + offset, (addr_t)region->pa_start + offset, access);
         }
         // In task 5, you need to handle file-backed and anonymous mappings.
 	// Make sure to design for this requirement early!
@@ -228,7 +229,7 @@ static int add_region(void *state, nk_aspace_region_t *region)
     // if we are editing the current address space of this cpu, then we
     // might need to flush the TLB here.   We can do that with a cr3 write
     // like: write_cr3(p->cr3.val);
-
+    write_cr3(p->cr3.val);
     // if this aspace is active on a different cpu, we might need to do
     // a TLB shootdown here (out of scope of class)
     // a TLB shootdown is an interrupt to a remote CPU whose handler
@@ -262,10 +263,17 @@ static int remove_region(void *state, nk_aspace_region_t *region)
     // Make sure to handle anonymous and file-backed mappings. For task 5,
     // remember to free() the file-backed and anonymous memory you allocated
     // in add_region and exception.
-
+    struct list_head *pos, *n;
+    list_for_each_safe(pos, n, &head.items) {
+        region_node_t* node = container_of(pos, region_node_t, region);
+        if(node->region.va_start == region->va_start) {
+            list_del(pos);
+        }
+    }
     // next, if we are editing the current address space of this cpu,
     // we need to either invalidate individual pages using invlpg()
     // or do a full TLB flush with a write to cr3.
+    write_cr3(p->cr3.val);
 
     ASPACE_UNLOCK(p);
 
