@@ -44,7 +44,7 @@
 #include <nautilus/cpu.h>
 
 #include <nautilus/aspace.h>
-
+#include <nautilus/list.h>
 #include "paging_helpers.h"
 
 
@@ -98,7 +98,10 @@ typedef struct region_node {
     //
     // WRITEME!!    linked list?  tree?  ??
     // 
+    struct list_head items;
 } region_node_t;
+
+static region_node_t head;
 
 // You will want some data structure to represent the state
 // of a paging address space
@@ -200,7 +203,9 @@ static int add_region(void *state, nk_aspace_region_t *region)
     
     // first you should sanity check the region to be sure it doesn't overlap
     // an existing region, and then place it into your region data structure
-
+    region_node_t* node = (region_node_t*)malloc(sizeof(region_node_t));
+    node->region = *region;
+    list_add(&(node->items), &(head.items));
     // NOTE: you MUST create a new nk_aspace_region_t to store in your data structure
     // and you MAY NOT store the region pointer in your data structure. There is no
     // promise that data at the region pointer will not be modified after this function
@@ -210,8 +215,12 @@ static int add_region(void *state, nk_aspace_region_t *region)
 	
         // an eager region means that we need to build all the corresponding
         // page table entries right now, before we return
-
         // DRILL THE PAGE TABLES HERE
+        ph_pf_access_t access;
+        access.present = 1;
+        for(addr_t offset = 0; offset < region->len_bytes; offset = PAGE_ADDR_4KB(offset)) {
+            paging_helper_drill(p->cr3, (addr_t)region->va_start + offset, (addr_t)region->va_start + offset, access);
+        }
         // In task 5, you need to handle file-backed and anonymous mappings.
 	// Make sure to design for this requirement early!
     }
